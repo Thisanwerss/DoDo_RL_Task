@@ -4,15 +4,14 @@ import numpy as np
 import os
 import pickle  # Used to save/load Q-table
 from tqdm import tqdm  # Nice progress bar for training visualization
+# First, add these imports at the top of agent.py
+import random
+from collections import deque
 
 class QLearningAgent:
     def __init__(self, env, config):
         """
-        Initialize the Q-learning agent.
-
-        Args:
-            env: Gym environment
-            config: Dictionary of training configurations
+        Initialize the Q-learning agent with experience replay.
         """
         self.env = env
         self.config = config
@@ -39,7 +38,66 @@ class QLearningAgent:
             self.env.observation_space.low[2],
             -np.radians(50)
         ]
+        
+        # Experience replay buffer
+        self.replay_buffer_size = 10000  # Size of replay buffer
+        self.replay_buffer = deque(maxlen=self.replay_buffer_size)
+        self.batch_size = 32  # Number of experiences to sample during learning
+        self.replay_start_size = 500  # Minimum experiences before training
 
+    def train_for_episodes(self, num_episodes):
+        """
+        Train for a specific number of episodes with experience replay.
+        """
+        rewards = []
+
+        for episode in tqdm(range(num_episodes), desc="Training"):
+            state, _ = self.env.reset()
+            state = self.discretize_state(state)
+            total_reward = 0
+
+            done = False
+            while not done:
+                action = self.choose_action(state, self.config["epsilon"])
+                next_state, reward, terminated, truncated, _ = self.env.step(action)
+                done = terminated or truncated
+                next_state_discrete = self.discretize_state(next_state)
+                
+                # Store experience in replay buffer
+                self.replay_buffer.append((state, action, reward, next_state_discrete, done))
+                
+                # Learn from experiences
+                if len(self.replay_buffer) >= self.replay_start_size:
+                    self.learn_from_replay()
+
+                state = next_state_discrete
+                total_reward += reward
+
+            # Decay epsilon
+            if self.config["epsilon"] > self.config["epsilon_min"]:
+                self.config["epsilon"] *= self.config["epsilon_decay"]
+
+            rewards.append(total_reward)
+
+        return rewards
+        
+    def learn_from_replay(self):
+        """
+        Sample from replay buffer and update Q-values.
+        """
+        # Sample random batch from replay buffer
+        batch = random.sample(self.replay_buffer, min(len(self.replay_buffer), self.batch_size))
+        
+        for state, action, reward, next_state, done in batch:
+            # Calculate Q-value target
+            if done:
+                target = reward
+            else:
+                target = reward + self.config["gamma"] * np.max(self.q_table[next_state])
+            
+            # Update Q-value
+            current = self.q_table[state][action]
+            self.q_table[state][action] = current + self.config["alpha"] * (target - current)
     def discretize_state(self, state):
         """
         Convert a continuous state to a discrete state.
@@ -98,36 +156,10 @@ class QLearningAgent:
 
     def train(self):
         """
-        Main training loop.
-        Trains the Q-table using episodes of CartPole.
+        Main training loop for all episodes.
         """
-        rewards = []
+        return self.train_for_episodes(self.config["episodes"])
 
-        for episode in tqdm(range(self.config["episodes"]), desc="Training"):
-            state, _ = self.env.reset()
-            state = self.discretize_state(state)
-            total_reward = 0
-
-            done = False
-            while not done:
-                action = self.choose_action(state, self.config["epsilon"])
-                next_state, reward, terminated, truncated, _ = self.env.step(action)
-                done = terminated or truncated
-                next_state_discrete = self.discretize_state(next_state)
-
-                self.update_q_value(state, action, reward, next_state_discrete,
-                                    self.config["alpha"], self.config["gamma"])
-
-                state = next_state_discrete
-                total_reward += reward
-
-            # Decay epsilon
-            if self.config["epsilon"] > self.config["epsilon_min"]:
-                self.config["epsilon"] *= self.config["epsilon_decay"]
-
-            rewards.append(total_reward)
-
-        return rewards
 
     def evaluate(self, render=False, episodes=5):
         """

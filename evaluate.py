@@ -19,7 +19,7 @@ def evaluate_agent():
     agent.load(CONFIG["model_path"])
 
     # Evaluate the agent for a few episodes
-    agent.evaluate(render=True, episodes=5)  # Render the environment during evaluation
+    agent.evaluate(render=True, episodes=100)  # Render the environment during evaluation
 
 
 if __name__ == "__main__":
