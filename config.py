@@ -7,23 +7,29 @@ CONFIG = {
     "env_name": "CartPole-v1",
 
     # Total number of training episodes
-    "episodes": 5000,
+    "episodes": 2000,  # Reduced from 5000 for faster training
 
-    # Learning rate (α): reduced to slow down learning
-    "alpha": 0.05,  # Reduced from 0.1
+    # Learning rate (α): how quickly the agent updates its Q-values
+    "alpha": 0.1,  
 
-    # Discount factor (γ): importance of future rewards
-    "gamma": 0.95,  # Slightly reduced from 0.99
+    # Discount factor (γ): importance of future rewards (0-1)
+    "gamma": 0.99,  # Higher value makes agent more focused on long-term rewards
 
-    # Exploration rate (ε): increased initial exploration
-    "epsilon": 1.0,
+    # Exploration rate (ε): probability of taking a random action
+    "epsilon": 1.0,  # Start with 100% exploration
 
-    # Minimum exploration rate (ε_min): increased to maintain more exploration
-    "epsilon_min": 0.1,  # Increased from 0.01
+    # Minimum exploration rate (ε_min): lowest exploration probability
+    "epsilon_min": 0.05,  
 
-    # Decay rate for ε per episode: slower decay
-    "epsilon_decay": 0.998,  # Slower decay from 0.995
+    # Decay rate for ε per episode: controls exploration decrease
+    "epsilon_decay": 0.995,  # Adjusted for better learning curve
 
     # Save model path
-    "model_path": "models/q_table.pkl"
+    "model_path": "models/q_table.pkl",
+    
+    # Checkpoint directory
+    "checkpoint_dir": "checkpoints",
+    
+    # Save checkpoints at these percentages of training
+    "checkpoint_percentages": [0.1, 0.25, 0.5, 0.75, 1.0]
 }
