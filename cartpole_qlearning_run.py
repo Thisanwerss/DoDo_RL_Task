@@ -5,7 +5,7 @@ import time
 env = gymnasium.make('CartPole-v1', render_mode="human")
 q_table = np.load('q_table.npy')
 
-discretization_info = np.load('discretization_info.npy', allow_pickle=True).item()
+discretization_info = np.load('q_table.npy', allow_pickle=True).item()
 NUM_BUCKETS = discretization_info['num_buckets']
 state_bounds = discretization_info['state_bounds']
 

@@ -92,7 +92,7 @@ discretization_info = {
     'num_buckets': NUM_BUCKETS,
     'state_bounds': state_bounds
 }
-np.save('discretization_info.npy', discretization_info)
+np.save('q_table.npy', discretization_info)
 print("Q-table and discretization info saved successfully!")
 
 plt.figure(figsize=(12, 6))
