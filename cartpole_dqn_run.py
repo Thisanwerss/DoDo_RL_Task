@@ -24,7 +24,7 @@ action_dim = env.action_space.n
 
 # Load the model (use the new centered model if you retrained)
 model = DQN(state_dim, action_dim)
-model.load_state_dict(torch.load("dqn_cartpole_centered.pth"))  # Use your model path
+model.load_state_dict(torch.load("student_model.pth"))  # Use your model path
 model.eval()  # Evaluation mode
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model.to(device)

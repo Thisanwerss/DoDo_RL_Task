@@ -1,1 +1,10 @@
+venv/
 /venv
+__pycache__/
+*.pth
+*.png
+*.npy
+.DS_Store
+.idea/
+.vscode/
+*.egg-info/

@@ -62,10 +62,10 @@ class DQNAgent:
         batch = random.sample(self.memory, self.batch_size)
         states, actions, rewards, next_states, dones = zip(*batch)
 
-        states = torch.FloatTensor(states)
+        states = torch.FloatTensor(np.array(states))
         actions = torch.LongTensor(actions)
         rewards = torch.FloatTensor(rewards)
-        next_states = torch.FloatTensor(next_states)
+        next_states = torch.FloatTensor(np.array(next_states))
         dones = torch.FloatTensor(dones)
 
         # Compute current Q values
@@ -85,7 +85,66 @@ class DQNAgent:
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
-# --- Main Training with Improved Reward ---
+# --- TODO: Custom Reward Function ---
+def calculate_custom_reward(state, action, original_reward, done):
+    """
+    Design your own reward function here!
+    
+    Args:
+        state (np.array): The current state vector [cart_pos, cart_vel, pole_angle, pole_vel]
+        action (int): The action taken (0: Left, 1: Right)
+        original_reward (float): The default reward from Gym (+1 for every step alive)
+        done (bool): Whether the episode has ended (pole fell or out of bounds)
+        
+    Returns:
+        float: The modified reward value
+        
+    Hints:
+        - state[0]: Cart Position (Range: -4.8 to 4.8, termination at ±2.4)
+        - state[1]: Cart Velocity
+        - state[2]: Pole Angle (Range: ±0.418 rad, termination at ±0.2095 rad)
+        - state[3]: Pole Angular Velocity
+        
+    Goals:
+        1. Keep the pole upright (implied by survival).
+        2. Keep the cart close to the center (state[0] close to 0).
+        3. Make the movement smooth (minimize large velocities if possible).
+        
+    Challenge:
+        - Try to penalize the agent if it moves too far from the center.
+        - Try to penalize high angular velocity to make it stable.
+    """
+    
+    # --- YOUR CODE HERE ---
+    
+    # Example Structure (Dummy components):
+    # 1. Survival Reward (Keep it alive)
+    r_survival = original_reward 
+    
+    # 2. Position Reward (Dummy placeholder - currently does nothing)
+    # Hint: Maybe 1.0 - abs(state[0]) / 2.4 ?
+    r_position = 0.0 
+    
+    # 3. Stability Reward (Dummy placeholder - currently does nothing)
+    # Hint: Maybe -abs(state[3]) ?
+    r_stability = 0.0
+    
+    # Combine them with weights (Tune these weights!)
+    w1 = 1.0
+    w2 = 0.0
+    w3 = 0.0
+    
+    modified_reward = w1 * r_survival + w2 * r_position + w3 * r_stability
+    
+    # Default is just survival (Agent learns basics but wobbles)
+    # Change this to 0.0 if you want to force yourself to write code immediately!
+    # modified_reward = 0.0 
+    
+    return modified_reward
+    # ----------------------
+
+
+# --- Main Training Loop ---
 env = gymnasium.make('CartPole-v1')
 state_dim = env.observation_space.shape[0]
 action_dim = env.action_space.n
@@ -93,6 +152,8 @@ agent = DQNAgent(state_dim, action_dim)
 
 episodes = 2000
 rewards_per_episode = []
+
+print("Starting training...")
 
 for episode in range(episodes):
     state, _ = env.reset()
@@ -105,20 +166,17 @@ for episode in range(episodes):
         action = agent.act(state)
         next_state, reward, terminated, truncated, info = env.step(action)
         
-        # Add position penalty to encourage staying centered
-        cart_position = next_state[0]
-        position_penalty = abs(cart_position) * 0.1  # Scale position penalty
-        modified_reward = reward - position_penalty
+        # Determine if episode is done
+        done = terminated or truncated
         
-        # Also end early if the cart moves too far
-        position_done = abs(cart_position) > 2.4  # Cart position threshold
-        done = terminated or truncated or position_done
+        # Calculate custom reward
+        modified_reward = calculate_custom_reward(next_state, action, reward, done)
         
         agent.remember(state, action, modified_reward, next_state, done)
         agent.replay()
 
         state = next_state
-        total_reward += reward  # Track original reward for metrics
+        total_reward += reward  # We track the ORIGINAL reward to see how long it survives
 
     rewards_per_episode.append(total_reward)
 
@@ -127,20 +185,20 @@ for episode in range(episodes):
         agent.update_target_model()
 
     if (episode+1) % 10 == 0:
-        print(f"Episode {episode+1}: Reward = {total_reward:.2f}, Steps = {step}, Epsilon = {agent.epsilon:.4f}")
+        print(f"Episode {episode+1}: Original Reward = {total_reward:.2f}, Steps = {step}, Epsilon = {agent.epsilon:.4f}")
 
 env.close()
 
 # Save the model
-torch.save(agent.model.state_dict(), "dqn_cartpole_centered.pth")
-print("Model saved successfully!")
+torch.save(agent.model.state_dict(), "student_model.pth")
+print("Model saved as 'student_model.pth'!")
 
 # --- Plotting ---
 plt.figure(figsize=(10, 6))
 plt.plot(rewards_per_episode)
 plt.xlabel('Episode')
 plt.ylabel('Reward')
-plt.title('Deep Q-Learning on CartPole with Position Constraints')
+plt.title('My DQN Training Performance')
 plt.grid()
-plt.savefig('dqn_cartpole_training_curve.png')
-plt.show()
+plt.savefig('student_training_curve.png')
+print("Training curve saved as 'student_training_curve.png'.")
