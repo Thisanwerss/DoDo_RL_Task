@@ -31,13 +31,44 @@ conda create -n rl_hw python=3.10 -y
 
 # 2. Activate environment
 conda activate rl_hw
+```
 
-# 3. Install dependencies
+**Option 1: Auto Install (Recommended - auto-detects GPU/CPU)**
+```bash
+# Linux/Mac one-liner: auto-detects GPU and installs the appropriate PyTorch version
+bash install.sh
+```
+
+**Option 2: Manual Install**
+
+*Option A: GPU environment (requires NVIDIA GPU + CUDA)*
+```bash
 # For Linux/Mac:
 pip install -r requirements_linux.txt
 
 # For Windows:
 pip install -r requirements_win.txt
+```
+
+*Option B: CPU environment (no GPU, or CUDA install failed)*
+
+If your machine does not have an NVIDIA GPU, or the GPU version fails to install, install the CPU-only version of PyTorch first:
+```bash
+# 1. Install CPU-only PyTorch
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+# 2. Install remaining dependencies (torch is already installed, pip will skip it)
+# For Linux/Mac:
+pip install -r requirements_linux.txt
+# For Windows:
+pip install -r requirements_win.txt
+```
+
+> **Note**: The model in this project is very small (3-layer fully connected network). CPU training is perfectly sufficient — no GPU required to complete all tasks.
+
+**Verify installation:**
+```bash
+python -c "import torch; print(f'PyTorch {torch.__version__}, Device: {\"cuda\" if torch.cuda.is_available() else \"cpu\"}')"
 ```
 
 ---

@@ -26,8 +26,12 @@ class DQNAgent:
         self.state_dim = state_dim
         self.action_dim = action_dim
 
-        self.model = DQN(state_dim, action_dim)
-        self.target_model = DQN(state_dim, action_dim)
+        # Detect device: use GPU if available, otherwise fall back to CPU
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        print(f"Using device: {self.device}")
+
+        self.model = DQN(state_dim, action_dim).to(self.device)
+        self.target_model = DQN(state_dim, action_dim).to(self.device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.0005)
         self.criterion = nn.MSELoss()
 
@@ -51,8 +55,9 @@ class DQNAgent:
     def act(self, state):
         if np.random.rand() < self.epsilon:
             return np.random.choice(self.action_dim)
-        state = torch.FloatTensor(state).unsqueeze(0)
-        q_values = self.model(state)
+        state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+        with torch.no_grad():
+            q_values = self.model(state)
         return torch.argmax(q_values).item()
 
     def replay(self):
@@ -62,11 +67,11 @@ class DQNAgent:
         batch = random.sample(self.memory, self.batch_size)
         states, actions, rewards, next_states, dones = zip(*batch)
 
-        states = torch.FloatTensor(np.array(states))
-        actions = torch.LongTensor(actions)
-        rewards = torch.FloatTensor(rewards)
-        next_states = torch.FloatTensor(np.array(next_states))
-        dones = torch.FloatTensor(dones)
+        states = torch.FloatTensor(np.array(states)).to(self.device)
+        actions = torch.LongTensor(actions).to(self.device)
+        rewards = torch.FloatTensor(rewards).to(self.device)
+        next_states = torch.FloatTensor(np.array(next_states)).to(self.device)
+        dones = torch.FloatTensor(dones).to(self.device)
 
         # Compute current Q values
         curr_q = self.model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
