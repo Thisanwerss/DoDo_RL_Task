@@ -77,9 +77,14 @@ python -c "import torch; print(f'PyTorch {torch.__version__}, Device: {\"cuda\" 
 
 Before training anything, let's see how a "dumb" rule-based agent performs. This gives you a baseline score to beat.
 
-**Run the simple agent:**
+**Run the simple agent (no rendering):**
 ```bash
 python cartpole_basic.py
+```
+
+**Run with visual rendering (recommended):**
+```bash
+python cartpole_dqn_run.py --baseline
 ```
 *Observation: It survives, but wobbles significantly and drifts off-center.*
 

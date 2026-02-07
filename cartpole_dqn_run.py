@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import time
+import argparse
 
 # --- Neural Network (same as before) ---
 class DQN(nn.Module):
@@ -17,26 +18,49 @@ class DQN(nn.Module):
         x = torch.relu(self.fc2(x))
         return self.fc3(x)
 
-# --- Load the environment and model ---
+# --- Rule-based policy (simple baseline) ---
+def rule_based_policy(state):
+    """Push left if pole leans left, push right if pole leans right."""
+    pole_angle = state[2]
+    return 0 if pole_angle < 0 else 1
+
+# --- Parse arguments ---
+parser = argparse.ArgumentParser(description="Run CartPole agent with visualization")
+parser.add_argument("--baseline", action="store_true",
+                    help="Use rule-based baseline policy instead of the trained DQN model")
+parser.add_argument("--model", type=str, default="student_model.pth",
+                    help="Path to the trained model file (default: student_model.pth)")
+parser.add_argument("--episodes", type=int, default=10,
+                    help="Number of episodes to run (default: 10)")
+args = parser.parse_args()
+
+# --- Load the environment ---
 env = gymnasium.make('CartPole-v1', render_mode="human")
 state_dim = env.observation_space.shape[0]
 action_dim = env.action_space.n
 
-# Detect device: use GPU if available, otherwise fall back to CPU
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(f"Using device: {device}")
+# --- Load model or use baseline ---
+model = None
+device = None
 
-# Load the model (use the new centered model if you retrained)
-model = DQN(state_dim, action_dim)
-model.load_state_dict(torch.load("student_model.pth", map_location=device, weights_only=True))  # Use your model path
-model.to(device)
-model.eval()  # Evaluation mode
+if args.baseline:
+    print("Running with rule-based baseline policy")
+else:
+    # Detect device: use GPU if available, otherwise fall back to CPU
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"Using device: {device}")
 
-# --- Play using the trained model ---
-episodes = 10
+    # Load the trained model
+    model = DQN(state_dim, action_dim)
+    model.load_state_dict(torch.load(args.model, map_location=device, weights_only=True))
+    model.to(device)
+    model.eval()  # Evaluation mode
+    print(f"Loaded model from: {args.model}")
+
+# --- Play ---
 max_steps = 500  # Cap the number of steps per episode
 
-for episode in range(episodes):
+for episode in range(args.episodes):
     state, _ = env.reset()
     done = False
     total_reward = 0
@@ -57,10 +81,13 @@ for episode in range(episodes):
         angular_velocities.append(state[3])
         
         # Select action
-        state_tensor = torch.FloatTensor(state).unsqueeze(0).to(device)
-        with torch.no_grad():
-            q_values = model(state_tensor)
-        action = torch.argmax(q_values).item()
+        if args.baseline:
+            action = rule_based_policy(state)
+        else:
+            state_tensor = torch.FloatTensor(state).unsqueeze(0).to(device)
+            with torch.no_grad():
+                q_values = model(state_tensor)
+            action = torch.argmax(q_values).item()
 
         next_state, reward, terminated, truncated, info = env.step(action)
         
